@@ -6,7 +6,9 @@ Orchestrates the entire data discovery and directory creation process with LLM i
 import logging
 import sys
 import os
+import re
 from typing import Dict, List, Optional
+import re
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -65,14 +67,15 @@ class ManufacturingDataCollector:
             domain_info = self.domain_manager.get_domain_info(domain_key)
             print(f"{i}. {domain_info.name}")
         
-        print(f"{len(domains) + 1}. Process All Domains")
-        print(f"{len(domains) + 2}. Show Query Estimates")
+        print(f"{len(domains) + 1}. Custom Domain Entry")
+        print(f"{len(domains) + 2}. Process All Domains")
+        print(f"{len(domains) + 3}. Show Query Estimates")
         if self.use_llm:
-            print(f"{len(domains) + 3}. LLM Enhancement Demo")
+            print(f"{len(domains) + 4}. LLM Enhancement Demo")
         
         while True:
             try:
-                choice = input(f"\n🎯 Choose domain to process (1-{len(domains) + 2}) or 'q' to quit: ").strip()
+                choice = input(f"\n🎯 Choose option (1-{len(domains) + 3}) or 'q' to quit: ").strip()
                 
                 if choice.lower() == 'q':
                     print("👋 Goodbye!")
@@ -81,11 +84,17 @@ class ManufacturingDataCollector:
                 choice_num = int(choice)
                 
                 if choice_num == len(domains) + 1:
+                    # Custom domain entry
+                    self.process_custom_domain()
+                elif choice_num == len(domains) + 2:
                     # Process all domains
                     self.process_all_domains()
-                elif choice_num == len(domains) + 2:
+                elif choice_num == len(domains) + 3:
                     # Show query estimates
                     self.show_query_estimates()
+                elif choice_num == len(domains) + 4 and self.use_llm:
+                    # LLM Enhancement Demo
+                    self.show_llm_demo()
                 elif 1 <= choice_num <= len(domains):
                     # Process specific domain
                     domain_key = domains[choice_num - 1]
@@ -258,6 +267,117 @@ class ManufacturingDataCollector:
             except ValueError:
                 print("❌ Please enter a valid number")
                 continue
+    
+    def process_custom_domain(self):
+        """Process a custom domain entered by the user"""
+        print(f"\n🆕 Custom Domain Entry")
+        print("-" * 30)
+        
+        # Get custom domain details from user
+        domain_name = input("Enter the domain/industry name: ").strip()
+        if not domain_name:
+            print("❌ Domain name cannot be empty")
+            return
+        
+        # Get keywords for the domain
+        print("\nEnter keywords related to this domain (separated by commas):")
+        keywords_input = input("Keywords: ").strip()
+        if not keywords_input:
+            print("❌ Keywords cannot be empty")
+            return
+        
+        keywords = [k.strip() for k in keywords_input.split(",") if k.strip()]
+        
+        # Get additional context (optional)
+        print("\nEnter additional context or specific terms (optional):")
+        additional_context = input("Additional context: ").strip()
+        
+        # Get number of queries
+        query_count = self._get_query_count()
+        
+        print(f"\n🔍 Processing Custom Domain: {domain_name}")
+        print("-" * 40)
+        
+        # Generate optimized queries using LLM
+        if self.use_llm and hasattr(self.domain_manager, 'llm_analyzer') and self.domain_manager.llm_analyzer and self.domain_manager.llm_analyzer.enabled:
+            print("🤖 Using LLM to generate optimized queries...")
+            queries = self.domain_manager.generate_custom_domain_queries(domain_name, keywords, additional_context, query_count)
+        else:
+            print("📝 Generating standard queries...")
+            queries = self.domain_manager._generate_basic_custom_queries(domain_name, keywords, query_count)
+        
+        print(f"✅ Generated {len(queries)} optimized queries")
+        
+        # Execute searches
+        print(f"🔎 Starting search process...")
+        # Create a temporary domain key for this custom domain
+        custom_domain_key = f"custom_{domain_name.lower().replace(' ', '_')}"
+        search_results = self.search_engine.batch_search(queries, custom_domain_key)
+        
+        # Show search summary
+        total_sources = sum(len(result.get('results', [])) for result in search_results)
+        successful_queries = sum(1 for result in search_results if result.get('status') != 'error')
+        
+        print(f"📊 Search completed:")
+        print(f"   - Queries executed: {len(search_results)}")
+        print(f"   - Successful queries: {successful_queries}")
+        print(f"   - Data sources found: {total_sources}")
+        
+        # Create directory
+        print("📁 Creating structured Excel directory...")
+        directory_path = self.directory_creator.create_structured_directory(
+            domain_name, 
+            search_results
+        )
+        
+        # Store results
+        self.collected_data[custom_domain_key] = search_results
+        
+        print(f"✅ Custom domain directory created: {directory_path}")
+        return directory_path
+    
+    def show_llm_demo(self):
+        """Show LLM enhancement capabilities"""
+        print(f"\n🤖 LLM Enhancement Demo")
+        print("-" * 30)
+        
+        if not self.use_llm:
+            print("❌ LLM is not enabled for this session")
+            return
+        
+        if not hasattr(self.domain_manager, 'llm_analyzer') or not self.domain_manager.llm_analyzer:
+            print("❌ LLM analyzer not available")
+            return
+        
+        if not self.domain_manager.llm_analyzer.enabled:
+            print("❌ LLM is not properly configured (check API key)")
+            return
+        
+        print("✅ LLM is active and ready!")
+        print("\n🔍 LLM Capabilities:")
+        print("• Smart query generation based on domain context")
+        print("• Industry-specific keyword optimization")
+        print("• India-focused search strategies")
+        print("• Adaptive query formulation")
+        print("• Context-aware search terms")
+        
+        # Demo with a sample domain
+        print(f"\n📋 Demo: Generating 5 smart queries for 'Textile Manufacturing'")
+        try:
+            sample_queries = self.domain_manager.generate_custom_domain_queries(
+                "Textile Manufacturing", 
+                ["textile", "fabric", "garment"], 
+                "Focus on cotton and silk textile manufacturers",
+                5
+            )
+            
+            print("Generated queries:")
+            for i, query in enumerate(sample_queries, 1):
+                print(f"  {i}. {query['search_query']}")
+                
+        except Exception as e:
+            logger.error(f"Demo failed: {e}")
+            print(f"❌ Demo failed: {e}")
 
 def main():
     """Main entry point"""

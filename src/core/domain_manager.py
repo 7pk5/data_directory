@@ -4,8 +4,10 @@ Handles domain-specific search query generation and management with LLM enhancem
 """
 
 import logging
+import re
 from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
+import re
 
 # Import Gemini analyzer with fallback
 try:
@@ -229,3 +231,155 @@ class DomainManager:
             estimates[domain_key] = regular_prompts + state_prompts
         
         return estimates
+    
+    def add_custom_domain(self, domain_key: str, domain_name: str, keywords: List[str], specific_terms: Optional[List[str]] = None) -> str:
+        """Add a custom domain dynamically"""
+        if specific_terms is None:
+            specific_terms = []
+        
+        # Create a new Domain object
+        custom_domain = Domain(
+            name=domain_name,
+            keywords=keywords,
+            specific_terms=specific_terms,
+            state_variations=True
+        )
+        
+        # Add to domains dictionary
+        self.domains[domain_key] = custom_domain
+        
+        # Add domain context for LLM if available
+        if self.llm_analyzer and self.llm_analyzer.enabled:
+            # Add to domain contexts if it exists
+            if hasattr(self.llm_analyzer, 'domain_contexts'):
+                self.llm_analyzer.domain_contexts[domain_key] = {
+                    "industry": domain_name,
+                    "key_sectors": keywords,
+                    "associations": [],
+                    "data_types": ["Companies", "Organizations", "Directories", "Industry data"],
+                    "search_focus": f"{domain_name.lower()} companies India, {', '.join(keywords[:3])}"
+                }
+        
+        logger.info(f"Added custom domain: {domain_name} with key: {domain_key}")
+        return domain_key
+    
+    def generate_custom_domain_queries(self, domain_name: str, keywords: List[str], additional_context: str = "", query_count: int = 20) -> List[Dict]:
+        """Generate queries for a custom domain using LLM"""
+        # Create temporary domain key
+        temp_domain_key = f"custom_{domain_name.lower().replace(' ', '_')}"
+        
+        # Add as temporary domain
+        custom_domain_key = self.add_custom_domain(temp_domain_key, domain_name, keywords)
+        
+        # Generate queries using existing method
+        if self.llm_analyzer and self.llm_analyzer.enabled:
+            try:
+                # Create enhanced prompt for custom domain
+                prompt = f"""
+                Generate {query_count} highly effective search queries for finding companies, organizations, and data sources in the {domain_name} industry in India.
+                
+                Domain: {domain_name}
+                Keywords: {', '.join(keywords)}
+                Additional Context: {additional_context}
+                
+                Focus on:
+                - Indian companies and manufacturers in {domain_name}
+                - Industry associations and trade bodies
+                - Export-import directories
+                - Business directories and catalogs
+                - Contact databases with company details
+                - Industry reports and market research
+                - Professional networks and organizations
+                
+                Make each query specific to India and designed to find comprehensive business information.
+                Format as a numbered list with one query per line.
+                """
+                
+                if (hasattr(self.llm_analyzer, 'model') and 
+                    self.llm_analyzer.model and 
+                    hasattr(self.llm_analyzer.model, 'generate_content')):
+                    
+                    response = self.llm_analyzer.model.generate_content(prompt)
+                    if response and hasattr(response, 'text'):
+                        queries = self._parse_custom_llm_response(response.text, domain_name, temp_domain_key)
+                        return queries[:query_count]
+                
+            except Exception as e:
+                logger.error(f"Custom LLM query generation failed: {e}")
+        
+        # Fallback to basic queries
+        return self._generate_basic_custom_queries(domain_name, keywords, query_count)
+    
+    def _parse_custom_llm_response(self, response_text: str, domain_name: str, domain_key: str) -> List[Dict]:
+        """Parse LLM response for custom domain queries"""
+        queries = []
+        lines = response_text.split('\n')
+        
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if line and not line.startswith('#') and len(line) > 10:
+                # Remove numbering and bullet points
+                line = re.sub(r'^\d+\.?\s*', '', line)
+                line = re.sub(r'^\*\s*', '', line)
+                line = re.sub(r'^-\s*', '', line)
+                
+                if line:
+                    queries.append({
+                        "query_id": f"{domain_key}_llm_{i+1}",
+                        "domain": domain_name,
+                        "search_query": line,
+                        "query_type": "custom_llm_generated",
+                        "source": "gemini_custom"
+                    })
+        
+        return queries
+    
+    def _generate_basic_custom_queries(self, domain_name: str, keywords: List[str], query_count: int) -> List[Dict]:
+        """Generate basic queries for custom domain"""
+        queries = []
+        
+        # Basic templates
+        templates = [
+            f"{domain_name} companies in India",
+            f"{domain_name} manufacturers India",
+            f"{domain_name} directory India",
+            f"{domain_name} associations India",
+            f"{domain_name} database India",
+            f"{domain_name} exporters India",
+            f"{domain_name} industry India",
+            f"{domain_name} suppliers India",
+            f"{domain_name} organizations India",
+            f"{domain_name} trade directory India"
+        ]
+        
+        # Add keyword variations
+        for keyword in keywords[:3]:
+            templates.extend([
+                f"{keyword} companies India",
+                f"{keyword} directory India",
+                f"{keyword} associations India"
+            ])
+        
+        # Add location-specific queries
+        major_cities = ["Mumbai", "Delhi", "Bangalore", "Chennai", "Pune"]
+        for city in major_cities[:3]:
+            templates.append(f"{domain_name} companies {city}")
+        
+        # Ensure enough queries
+        while len(templates) < query_count:
+            templates.extend([
+                f"{domain_name} business directory",
+                f"{domain_name} trade associations",
+                f"{domain_name} export data India"
+            ])
+        
+        for i, template in enumerate(templates[:query_count]):
+            queries.append({
+                "query_id": f"custom_basic_{i+1}",
+                "domain": domain_name,
+                "search_query": template,
+                "query_type": "basic_custom",
+                "source": "rule_based_custom"
+            })
+        
+        return queries

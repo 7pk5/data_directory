@@ -1,14 +1,29 @@
-# Intelligent Data Collection for Indian Manufacturing Sector
+# 🏭 Intelligent Manufacturing Data Collection System
 
-## Overview
-This project automates the collection and analysis of company and association data from the Indian manufacturing sector across 4 key domains: Chemical & Petrochemical, Shipping, Sports Equipment, and EdTech.
+## 🌟 Overview
+An intelligent web-based system for collecting and analyzing company data from any industry sector in India. Features both a command-line interface and a beautiful web interface built with Streamlit.
 
-## Features
-- **Automated Web Searching**: Uses SerpAPI to perform intelligent Google searches
-- **Smart Content Analysis**: AI-powered classification of search results
-- **Multi-format Support**: Handles PDFs, Excel files, web pages, and APIs
-- **Data Quality Assessment**: Estimates data coverage and extraction difficulty
-- **Excel Output**: Organized results in domain-specific sheets
+## ✨ Features
+- **🌐 Web Interface**: Beautiful Streamlit frontend for easy use
+- **🔍 Smart Search**: AI-powered query generation for any industry domain
+- **🆓 Free Operation**: Works without paid APIs using intelligent free search
+- **🤖 LLM Enhancement**: Optional Gemini AI for smarter queries and analysis
+- **📊 Excel Output**: Professional business-ready directories
+- **🌍 India-Focused**: All searches target Indian companies and associations
+- **🎯 Custom Domains**: Enter any industry - EdTech, Automotive, Healthcare, etc.
+
+## 🚀 Quick Start
+
+### Option 1: Web Interface (Recommended)
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+
+### Option 2: Command Line
+```bash
+python src/main.py
+```
 
 ## Project Structure
 ```

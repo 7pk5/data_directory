@@ -11,3 +11,4 @@ fake-useragent>=1.4.0
 google-generativeai>=0.3.0
 googlesearch-python>=1.2.3
 selenium>=4.15.0
+

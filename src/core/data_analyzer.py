@@ -179,9 +179,14 @@ class DataSourceAnalyzer:
         # Get domain-specific keywords
         keywords = self.domain_keywords.get(target_domain, [])
         
-        # Count keyword matches
-        keyword_matches = sum(1 for keyword in keywords if keyword in text)
-        keyword_score = min(keyword_matches / len(keywords), 1.0)
+        # Handle empty keywords list to prevent division by zero
+        if not keywords:
+            # Use basic scoring for custom domains without predefined keywords
+            keyword_score = 0.5  # Default neutral score
+        else:
+            # Count keyword matches
+            keyword_matches = sum(1 for keyword in keywords if keyword in text)
+            keyword_score = min(keyword_matches / len(keywords), 1.0)
         
         # Check for quality indicators
         quality_matches = sum(1 for indicator in self.quality_indicators["high_quality"] if indicator in text)
