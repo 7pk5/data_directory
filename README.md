@@ -34,9 +34,20 @@ This project automates the collection and analysis of company and association da
    ```
 
 2. **Configure API Keys**:
-   Create a `.env` file with your SerpAPI key:
+   Create a `.env` file :
    ```
-   SERPAPI_KEY=your_serpapi_key_here
+      # API Configuration
+      GEMINI_API_KEY=your_gemini_api_key_here
+
+      # Search Configuration  
+      RESULTS_PER_QUERY=15
+      SEARCH_DELAY=1
+      MAX_RETRIES=3
+
+      # Data Analysis Configuration
+      RELEVANCE_THRESHOLD=0.6
+      MIN_DATA_ROWS=10
+
    ```
 
 3. **Run the Application**:
