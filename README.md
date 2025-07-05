@@ -1,4 +1,4 @@
-# 🏭 Intelligent Manufacturing Data Collection System
+# 🏭  Data Directory Collection System
 
 ## 🌟 Overview
 An intelligent web-based system for collecting and analyzing company data from any industry sector in India. Features both a command-line interface and a beautiful web interface built with Streamlit.
