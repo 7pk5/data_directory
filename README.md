@@ -15,13 +15,13 @@ An intelligent web-based system for collecting and analyzing company data from a
 ## 🚀 Quick Start
 
 ### Option 1: Web Interface (Recommended)
-```bash
+```
 # Install dependencies
 pip install -r requirements.txt
 
 
 ### Option 2: Command Line
-```bash
+```
 python src/main.py
 ```
 
